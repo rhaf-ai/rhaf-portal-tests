@@ -1,0 +1,89 @@
+name: Saci Worker Container
+
+on:
+  pull_request:
+    paths:
+      - saci/**
+      - src/**
+      - pom.xml
+      - spotbugs-exclude.xml
+      - .dockerignore
+      - .github/workflows/saci-container.yml
+      - build-manifests.sh
+  push:
+    branches: [main]
+    paths:
+      - saci/**
+      - src/**
+      - pom.xml
+      - spotbugs-exclude.xml
+      - .dockerignore
+      - .github/workflows/saci-container.yml
+      - build-manifests.sh
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saci-container-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ${{ format('{0}/{1}/rhaf-portal-saci-worker', vars.CONTAINER_REGISTRY, vars.CONTAINER_GROUP) }}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            architecture: amd64
+          - os: ubuntu-24.04-arm
+            architecture: arm64
+    runs-on: ${{ matrix.os }}
+    env:
+      LOCAL_IMAGE: rhaf-portal-saci-worker:sha-${{ github.sha }}-${{ matrix.architecture }}
+      IMAGE_TAG: sha-${{ github.sha }}-${{ matrix.architecture }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build container
+        run: docker build -f saci/Containerfile -t "$LOCAL_IMAGE" .
+      - name: Verify the worker and bundled Java tests as an arbitrary UID
+        run: |
+          docker run --rm --user 123456:0 --entrypoint bash "$LOCAL_IMAGE" -c '
+            set -eu
+            saci-worker --help
+            java -version
+            mvn --version
+            mvn --batch-mode --no-transfer-progress -f /opt/rhaf-portal-tests/pom.xml clean verify'
+      - name: Login to container registry
+        if: github.event_name != 'pull_request' && github.repository == 'rhaf-ai/rhaf-portal-tests' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ${{ vars.CONTAINER_REGISTRY }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+      - name: Push architecture image
+        if: github.event_name != 'pull_request' && github.repository == 'rhaf-ai/rhaf-portal-tests' && github.ref == 'refs/heads/main'
+        run: |
+          docker tag "$LOCAL_IMAGE" "$IMAGE:$IMAGE_TAG"
+          docker push "$IMAGE:$IMAGE_TAG"
+
+  create-manifests:
+    if: github.event_name != 'pull_request' && github.repository == 'rhaf-ai/rhaf-portal-tests' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Login to container registry
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ${{ vars.CONTAINER_REGISTRY }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+      - name: Publish and verify multi-architecture manifests
+        env:
+          IMAGE_TAG: sha-${{ github.sha }}
+        run: bash ./build-manifests.sh "$IMAGE" "$IMAGE_TAG"

@@ -1,0 +1,9 @@
+.git
+.github
+.oss-ai-helper-rules
+**/target
+**/*.log
+.env
+.env.*
+.idea
+.vscode

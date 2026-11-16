@@ -1,0 +1,24 @@
+# Build from the repository root:
+# podman build -f saci/Containerfile -t localhost/rhaf-portal-saci-worker:latest .
+ARG SACI_IMAGE=quay.io/orpiske/saci-worker:latest
+FROM ${SACI_IMAGE}
+
+USER root
+RUN dnf install --assumeyes --setopt=install_weak_deps=False java-devel maven \
+    && dnf clean all
+
+ENV MAVEN_OPTS="-Dmaven.repo.local=/workspace/.m2/repository"
+
+COPY pom.xml spotbugs-exclude.xml /opt/rhaf-portal-tests/
+COPY src/ /opt/rhaf-portal-tests/src/
+# Warm the dependency cache and verify the bundled scaffold. All build paths
+# remain writable when OpenShift supplies an arbitrary UID in group 0.
+RUN mvn --batch-mode --no-transfer-progress -f /opt/rhaf-portal-tests/pom.xml verify \
+    && chgrp -R 0 /opt/rhaf-portal-tests /workspace \
+    && chmod -R g=u /opt/rhaf-portal-tests /workspace
+USER 10001:0
+
+LABEL org.opencontainers.image.title="rhaf-portal-saci-worker" \
+      org.opencontainers.image.description="Saci worker with Java, Maven and the RHAF Portal test scaffold" \
+      org.opencontainers.image.source="https://github.com/rhaf-ai/rhaf-portal-tests" \
+      org.opencontainers.image.licenses="Apache-2.0"
