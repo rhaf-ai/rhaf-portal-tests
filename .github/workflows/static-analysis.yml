@@ -1,0 +1,73 @@
+name: Static Analysis
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths-ignore:
+      - README.md
+      - .LICENSE
+      - AGENTS.md
+      - docs/**
+      - plans/**
+
+permissions:
+  contents: read
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - name: Set up JDK 21
+      uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+    - name: Save PR number
+      run: echo "${{ github.event.pull_request.number }}" > pr-number.txt
+    - name: Upload PR number
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: pr-number
+        path: pr-number.txt
+    - name: Run PMD and SpotBugs
+      id: analysis
+      continue-on-error: true
+      # Compile the tests for analysis without executing them.
+      run: mvn -B --no-transfer-progress verify -Pstatic-analysis -DskipTests -DskipITs --file pom.xml
+    - name: Generate Report
+      if: steps.analysis.outcome == 'failure'
+      run: |
+        python3 -m pip install --quiet defusedxml==0.7.1
+        python3 .github/scripts/generate-static-analysis-report.py
+    - name: Upload Analysis Report
+      if: steps.analysis.outcome == 'failure'
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: static-analysis-report
+        path: static-analysis-report.md
+        retention-days: 1
+        if-no-files-found: ignore
+    - name: Upload PMD Reports
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: pmd-reports
+        path: '**/target/pmd.xml'
+        retention-days: 14
+        if-no-files-found: ignore
+    - name: Upload SpotBugs Reports
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: spotbugs-reports
+        path: '**/target/spotbugsXml.xml'
+        retention-days: 14
+        if-no-files-found: ignore
+    - name: Fail if violations found
+      if: steps.analysis.outcome == 'failure'
+      run: exit 1

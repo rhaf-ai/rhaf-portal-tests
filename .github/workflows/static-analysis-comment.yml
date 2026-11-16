@@ -1,0 +1,74 @@
+name: Post Static Analysis Comment
+
+on:
+  workflow_run:
+    workflows: ["Static Analysis"]
+    types: [completed]
+
+permissions:
+  pull-requests: write
+  actions: read
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event.workflow_run.event == 'pull_request'
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      RUN_ID: ${{ github.event.workflow_run.id }}
+    steps:
+      # This privileged workflow never checks out or executes pull request code.
+      - name: Download PR number
+        run: gh run download "$RUN_ID" -n pr-number -R "$REPOSITORY" -D pr-metadata
+      - name: Validate PR number
+        id: pr
+        env:
+          RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_HEAD_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
+        run: |
+          PR_NUMBER=$(cat pr-metadata/pr-number.txt)
+          [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]] || exit 1
+          gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" > pull-request.json
+          python3 - <<'PY'
+          import json
+          import os
+          with open("pull-request.json", encoding="utf-8") as source:
+              pr = json.load(source)
+          head = pr["head"]
+          if head["sha"] != os.environ["RUN_HEAD_SHA"]:
+              raise SystemExit("Pull request head changed; skipping outdated report.")
+          if head["repo"]["full_name"] != os.environ["RUN_HEAD_REPOSITORY"]:
+              raise SystemExit("Pull request repository does not match the analysis run.")
+          PY
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+      - name: Download report
+        id: report
+        continue-on-error: true
+        run: gh run download "$RUN_ID" -n static-analysis-report -R "$REPOSITORY" -D analysis-report
+      - name: Post or update PR comment
+        if: steps.report.outcome == 'success'
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          MARKER="<!-- static-analysis-report -->"
+          EXISTING=$(gh api --paginate "repos/$REPOSITORY/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$MARKER\"))) | .id" | head -1)
+          if [ -n "$EXISTING" ]; then
+            gh api "repos/$REPOSITORY/issues/comments/$EXISTING" \
+              -X PATCH -F "body=@analysis-report/static-analysis-report.md"
+          else
+            gh pr comment "$PR_NUMBER" -R "$REPOSITORY" --body-file analysis-report/static-analysis-report.md
+          fi
+      - name: Remove outdated comment
+        if: steps.report.outcome == 'failure' && github.event.workflow_run.conclusion == 'success'
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          MARKER="<!-- static-analysis-report -->"
+          EXISTING=$(gh api --paginate "repos/$REPOSITORY/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$MARKER\"))) | .id" | head -1)
+          if [ -n "$EXISTING" ]; then
+            gh api "repos/$REPOSITORY/issues/comments/$EXISTING" -X DELETE
+          fi
