@@ -1,7 +1,7 @@
 # Saci worker image
 
 This image extends `quay.io/orpiske/saci-worker:latest` with Java 21 or later,
-Maven, and the RHAF Portal test scaffold at `/opt/rhaf-portal-tests`. It keeps the
+Maven, and the RHAF Portal tests and MCP fixture at `/opt/rhaf-portal-tests`. It keeps the
 Saci worker entry point and supports an arbitrary UID in group 0.
 
 Build from the repository root:
@@ -30,5 +30,13 @@ container smoke check before the workflow publishes `sha-<commit>` and
 `latest` manifests. Registry credentials use the `QUAY_USERNAME` and
 `QUAY_PASSWORD` GitHub secrets. Pull requests build and test without publishing.
 
-The bundled test currently validates only the project scaffold. Product tests
-and Saci plans can be added as RHAF Portal contracts become available.
+The bundled tests validate the scaffold and controlled HTTP MCP fixture. They
+do not qualify RHAF Portal behavior. To start the fixture from a worker command:
+
+```sh
+java -jar /opt/rhaf-portal-tests/fixtures/test-mcp-server/target/quarkus-app/quarkus-run.jar
+```
+
+See the [fixture guide](../fixtures/test-mcp-server/README.md) for configuration,
+authentication, state reset, and lifecycle ownership. Product tests and Saci
+plans can be added as RHAF Portal contracts become available.

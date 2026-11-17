@@ -6,9 +6,14 @@
     <groupId>ai.rhaf.portal.tests</groupId>
     <artifactId>rhaf-portal-tests</artifactId>
     <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
     <name>RHAF Portal Tests</name>
     <description>Tests for the RHAF Portal</description>
     <url>https://github.com/rhaf-ai/rhaf-portal-tests</url>
+    <modules>
+        <module>fixtures/test-mcp-server</module>
+        <module>portal-tests</module>
+    </modules>
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
@@ -99,7 +104,7 @@
                         <includeTests>true</includeTests>
                         <effort>Default</effort>
                         <threshold>High</threshold>
-                        <excludeFilterFile>${project.basedir}/spotbugs-exclude.xml</excludeFilterFile>
+                        <excludeFilterFile>${maven.multiModuleProjectDirectory}/spotbugs-exclude.xml</excludeFilterFile>
                     </configuration>
                     <executions>
                         <execution>

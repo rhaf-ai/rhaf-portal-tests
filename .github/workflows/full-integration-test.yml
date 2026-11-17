@@ -23,7 +23,7 @@ jobs:
       - name: Test summary
         if: always()
         run: |
-          echo 'This bootstrap run validates the Java scaffold only. Product integration tests are not implemented yet.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This run validates the Java scaffold and controlled MCP fixture. Product integration tests are not implemented yet.' >> "$GITHUB_STEP_SUMMARY"
           python3 .github/scripts/test-summary.py
       - name: Upload test reports
         if: always()
