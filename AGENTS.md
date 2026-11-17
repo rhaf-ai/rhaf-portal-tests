@@ -1,7 +1,7 @@
 # RHAF Portal Tests
 
-Java tests and Saci worker infrastructure for RHAF Portal. The initial scaffold
-contains one passing JUnit test. It does not establish product test coverage.
+Java tests and Saci worker infrastructure for RHAF Portal. The test scaffold
+and controlled HTTP MCP fixture do not establish product test coverage.
 
 ## Build & Run
 
@@ -24,7 +24,8 @@ mvn spotless:check
 ```text
 rhaf-portal-tests/
   pom.xml                 # Maven build, Java 21, quality configuration
-  src/test/java/          # JUnit tests
+  portal-tests/           # Portal JUnit test scaffold
+  fixtures/test-mcp-server/ # Controlled Quarkus HTTP MCP target and tests
   spotbugs-exclude.xml    # SpotBugs exclusion filter
   saci/                   # Saci worker image
   .github/workflows/      # Builds, analysis, and container publishing
@@ -53,7 +54,7 @@ Prioritize clarity, stability, and ease of maintenance:
 ## Verifying Changes on CI
 
 The `full-integration-test` workflow runs the current Java suite manually. Until
-product tests exist, its passing result validates only the bootstrap scaffold.
+product tests exist, its passing result validates the scaffold and fixture only.
 Pull request and main builds run `mvn verify`; static analysis runs separately.
 
 ## Documentation

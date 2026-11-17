@@ -4,8 +4,10 @@ on:
   pull_request:
     paths:
       - saci/**
-      - src/**
+      - portal-tests/**
+      - fixtures/**
       - pom.xml
+      - .mvn/**
       - spotbugs-exclude.xml
       - .dockerignore
       - .github/workflows/saci-container.yml
@@ -14,8 +16,10 @@ on:
     branches: [main]
     paths:
       - saci/**
-      - src/**
+      - portal-tests/**
+      - fixtures/**
       - pom.xml
+      - .mvn/**
       - spotbugs-exclude.xml
       - .dockerignore
       - .github/workflows/saci-container.yml
