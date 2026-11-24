@@ -2,8 +2,7 @@
 
 Tests and test infrastructure for RHAF Portal. The repository contains a Java
 test scaffold, a controlled HTTP MCP fixture, code quality checks, CI workflows,
-and a Saci worker image. Fixture checks validate test infrastructure. They do
-not establish product test coverage.
+a Saci worker image, and black-box tests for Portal Core.
 
 ## Build
 
@@ -17,6 +16,21 @@ Portal test sources are in `portal-tests/src/test/java/ai/rhaf/portal/tests`.
 Name test classes `*Test.java`. Results are written to each module's
 `target/surefire-reports/`. Java tests run
 without a Saci backend or model provider.
+
+## Core integration tests
+
+Build Portal Core at the revision in the
+[manual integration workflow](.github/workflows/full-integration-test.yml).
+Run the integration profile from the root of this repository:
+
+```bash
+mvn verify -Pcore-integration -Dcore.binary=/absolute/path/to/rhaf-portal-core
+```
+
+The profile runs the `*IT.java` tests and requires an executable Core binary.
+Each scenario starts Core and the fixture on loopback with fresh data. Maven
+writes test results to `portal-tests/target/failsafe-reports/` and retains
+process logs and fixture observations in `portal-tests/target/core-integration/`.
 
 ## Controlled HTTP MCP fixture
 
@@ -44,8 +58,8 @@ to `target/`. The SpotBugs exclusion filter is `spotbugs-exclude.xml`.
 
 Pull requests and pushes to `main` run the Java suite. Static analysis publishes
 reports and a separate workflow adds the results to pull requests. The manual
-`full-integration-test` workflow runs the current suite. It checks the scaffold
-and fixture; it does not qualify RHAF Portal behavior.
+`full-integration-test` workflow builds a pinned Core revision and runs the
+Core integration profile.
 
 The Saci container workflow builds on native AMD64 and ARM64 runners. Pull
 requests build and smoke-test the worker. Main builds publish architecture
