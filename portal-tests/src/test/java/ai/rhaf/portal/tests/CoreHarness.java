@@ -29,7 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Starts a real Core and controlled MCP targets for one integration scenario. */
 final class CoreHarness implements AutoCloseable {
 
+    // Use IPv4 loopback for every child process and client address.
+    @SuppressWarnings("PMD.AvoidUsingHardCodedIP")
     private static final String LOOPBACK = "127.0.0.1";
+
     private static final String MCP_VERSION = "2025-03-26";
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
     private static final Duration PROBE_TIMEOUT = Duration.ofSeconds(1);
