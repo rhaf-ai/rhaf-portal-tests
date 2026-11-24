@@ -13,7 +13,7 @@
     <name>Controlled HTTP MCP Test Server</name>
     <properties>
         <quarkus.platform.version>3.40.1.2</quarkus.platform.version>
-        <quarkus-mcp-server.version>2.0.0.CR1</quarkus-mcp-server.version>
+        <quarkus-mcp-server.version>2.1.0.CR1</quarkus-mcp-server.version>
     </properties>
     <dependencyManagement>
         <dependencies>
