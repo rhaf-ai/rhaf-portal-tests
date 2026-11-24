@@ -9,21 +9,35 @@ permissions:
 jobs:
   full-integration-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out Portal Core
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: rhaf-ai/rhaf-portal-core
+          ref: a2d21bc27adeccf0c188ecd69ed095284bd21206
+          path: .portal-core
+          persist-credentials: false
+      - name: Build Portal Core
+        working-directory: .portal-core
+        run: cargo build --locked -p rhaf-portal-core
       - name: Set up JDK 21
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-      - name: Run the available test suite
-        run: mvn -B --no-transfer-progress verify --fail-at-end --file pom.xml
+      - name: Run Core integration tests
+        run: |
+          mvn -B --no-transfer-progress verify --fail-at-end -Pcore-integration \
+            -Dcore.binary="$GITHUB_WORKSPACE/.portal-core/target/debug/rhaf-portal-core"
       - name: Test summary
         if: always()
         run: |
-          echo 'This run validates the Java scaffold and controlled MCP fixture. Product integration tests are not implemented yet.' >> "$GITHUB_STEP_SUMMARY"
+          if test -d .portal-core/.git; then
+            printf 'Portal Core revision: `%s`\n\n' "$(git -C .portal-core rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          fi
           python3 .github/scripts/test-summary.py
       - name: Upload test reports
         if: always()
@@ -33,5 +47,6 @@ jobs:
           path: |
             **/target/surefire-reports/
             **/target/failsafe-reports/
+            portal-tests/target/core-integration/
           retention-days: 14
           if-no-files-found: ignore
