@@ -2,6 +2,11 @@ name: Full Integration Test
 
 on:
   workflow_dispatch:
+    inputs:
+      core_ref:
+        description: Portal Core commit with the forward create and replace API (issue 13)
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,7 +21,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: rhaf-ai/rhaf-portal-core
-          ref: a2d21bc27adeccf0c188ecd69ed095284bd21206
+          ref: ${{ inputs.core_ref }}
           path: .portal-core
           persist-credentials: false
       - name: Build Portal Core

@@ -19,9 +19,9 @@ without a Saci backend or model provider.
 
 ## Core integration tests
 
-Build Portal Core at the revision in the
-[manual integration workflow](.github/workflows/full-integration-test.yml).
-Run the integration profile from the root of this repository:
+Build Portal Core from a revision that implements forward creation and
+replacement (Core issues #11, #12, and #13). Run the integration profile from
+the root of this repository:
 
 ```bash
 mvn verify -Pcore-integration -Dcore.binary=/absolute/path/to/rhaf-portal-core
@@ -58,8 +58,8 @@ to `target/`. The SpotBugs exclusion filter is `spotbugs-exclude.xml`.
 
 Pull requests and pushes to `main` run the Java suite. Static analysis publishes
 reports and a separate workflow adds the results to pull requests. The manual
-`full-integration-test` workflow builds a pinned Core revision and runs the
-Core integration profile.
+`full-integration-test` workflow builds the Core commit supplied in its
+`core_ref` input and runs the Core integration profile.
 
 The Saci container workflow builds on native AMD64 and ARM64 runners. Pull
 requests build and smoke-test the worker. Main builds publish architecture

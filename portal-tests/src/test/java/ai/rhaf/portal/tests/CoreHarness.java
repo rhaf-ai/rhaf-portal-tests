@@ -142,6 +142,10 @@ final class CoreHarness implements AutoCloseable {
         Files.writeString(evidence.resolve(fileName), body.toPrettyString() + "\n");
     }
 
+    JsonNode registrySnapshot() throws IOException {
+        return json(Files.readString(evidence.resolve("data/registry.json")));
+    }
+
     JsonNode request(String method, URI uri, JsonNode body) throws IOException, InterruptedException {
         return request(method, uri, body, 200);
     }
